@@ -4,6 +4,7 @@
   "private": true,
   "description": "Firefox video downloader backed by yt-dlp",
   "scripts": {
+    "doctor": "python3 doctor.py",
     "test": "python3 -m unittest discover -s host",
     "lint": "npx --yes web-ext@8 lint --source-dir extension",
     "build": "npx --yes web-ext@8 build --source-dir extension --artifacts-dir dist --overwrite-dest",

@@ -225,6 +225,16 @@ class NotifyTextTest(unittest.TestCase):
             os.environ.clear(); os.environ.update(env)
 
 
+class VersionTest(unittest.TestCase):
+    def test_versions_match_everywhere(self):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(root, "extension", "manifest.json"), encoding="utf-8") as f:
+            manifest = json.load(f)["version"]
+        with open(os.path.join(root, "package.json"), encoding="utf-8") as f:
+            package = json.load(f)["version"]
+        self.assertEqual({manifest, package, host.VERSION}, {manifest})
+
+
 class ParseTest(unittest.TestCase):
     def test_progress_line(self):
         job = {}

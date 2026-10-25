@@ -34,6 +34,20 @@ runs [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 - Desktop notification when a download finishes.
 - UI in English and Russian, following your Firefox language.
 
+## Install with an AI agent
+
+Paste this into Claude Code, Codex, Cursor, Gemini CLI or any other coding agent:
+
+```text
+Install the ffvd Firefox video downloader on this machine by following
+https://github.com/pararti/ffvd/blob/main/docs/agent-install.md
+Ask me before any sudo command.
+```
+
+The agent installs the dependencies and the helper, downloads the signed add-on and
+verifies its checksum. You only confirm the install prompt in Firefox. It finishes
+by running `python3 doctor.py`, which checks the whole setup.
+
 ## Installation (Linux)
 
 1. Install the dependencies. `deno` is the JS runtime yt-dlp needs for YouTube;
@@ -91,7 +105,10 @@ By default, files go to your XDG *Downloads* folder.
 
 ## Development
 
+Coding agents: read [AGENTS.md](AGENTS.md) first.
+
 ```sh
+npm run doctor # check the local installation (python3 doctor.py [--json])
 npm test       # helper tests (against a fake yt-dlp, no network)
 npm run lint   # web-ext lint
 npm run run    # start a clean Firefox with the extension loaded
@@ -104,6 +121,8 @@ extension/   WebExtension (Manifest V3): popup, context menu, background
   _locales/  UI translations (en, ru)
 host/        native messaging helper + tests
 install.sh   registers the helper for Firefox
+doctor.py    installation health check
+docs/        agent-install.md: install runbook for AI agents
 sign.sh      signs the extension on AMO (unlisted)
 ```
 

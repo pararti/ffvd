@@ -11,6 +11,20 @@ Twitch, Vimeo и [1800+ других сайтов](https://github.com/yt-dlp/yt-
 `yt-dlp`. Никаких сторонних серверов и телеметрии нет. Загрузки идут в фоне и
 продолжаются, даже если закрыть попап или Firefox.
 
+## Установка через ИИ-агента
+
+Вставьте в Claude Code, Codex, Cursor, Gemini CLI или другого агента:
+
+```text
+Install the ffvd Firefox video downloader on this machine by following
+https://github.com/pararti/ffvd/blob/main/docs/agent-install.md
+Ask me before any sudo command.
+```
+
+Агент сам поставит зависимости и помощник, скачает подписанное расширение и проверит
+контрольную сумму. От вас нужно только подтвердить установку в Firefox. В конце агент
+запускает `python3 doctor.py`, которая проверяет всю установку.
+
 ## Установка
 
 ```sh

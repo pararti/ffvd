@@ -1,0 +1,14 @@
+# ffvd
+
+> Firefox extension (Linux) that downloads videos, clips, reels and shorts from YouTube, X, Instagram, TikTok and 1800+ other sites. It hands URLs to a local yt-dlp through a native messaging helper. No servers, no telemetry. MIT license.
+
+## Install
+
+- [Agent install guide](https://github.com/pararti/ffvd/blob/main/docs/agent-install.md): step-by-step runbook for AI agents, with dependencies per distro, checksum verification and a doctor check
+- [Latest signed add-on](https://github.com/pararti/ffvd/releases/latest/download/ffvd.xpi) and [checksums](https://github.com/pararti/ffvd/releases/latest/download/SHA256SUMS)
+
+## Develop
+
+- [AGENTS.md](https://github.com/pararti/ffvd/blob/main/AGENTS.md): architecture, commands, rules and the release process for coding agents
+- [README](https://github.com/pararti/ffvd/blob/main/README.md): user documentation
+- [Native helper](https://github.com/pararti/ffvd/blob/main/host/ffvd_host.py): Python stdlib, JSON commands over native messaging

@@ -21,7 +21,7 @@ import time
 import uuid
 from pathlib import Path
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 # yt-dlp format arguments per preset. "-S res:N" prefers the best quality up to N.
 _VIDEO = ["-f", "bv*+ba/b", "--merge-output-format", "mp4"]
@@ -69,7 +69,7 @@ def load_config():
 
 
 # Firefox may start us with a minimal PATH, so look in the usual places too.
-EXTRA_PATH = [os.path.expanduser("~/.local/bin"), "/usr/local/bin", "/usr/bin", "/bin"]
+EXTRA_PATH = [os.path.expanduser("~/.local/bin"), os.path.expanduser("~/.deno/bin"), "/usr/local/bin", "/usr/bin", "/bin"]
 
 
 def which(name):
