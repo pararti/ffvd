@@ -4,14 +4,6 @@ const $ = (id) => document.getElementById(id);
 let settings;
 let infoSeq = 0;
 
-const STATUS_TEXT = {
-  queued: "в очереди",
-  running: "скачивается",
-  done: "готово",
-  error: "ошибка",
-  cancelled: "отменено",
-};
-
 function show(el, text) {
   el.textContent = text || "";
   el.hidden = !text;
@@ -19,7 +11,7 @@ function show(el, text) {
 
 function fmtBytes(n) {
   if (!n) return "";
-  const units = ["Б", "КБ", "МБ", "ГБ"];
+  const units = t("byteUnits").split(",");
   let i = 0;
   while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
   return n.toFixed(i ? 1 : 0) + " " + units[i];
@@ -45,7 +37,7 @@ function fillPresets(maxHeight) {
   select.replaceChildren();
   for (const p of PRESETS) {
     if (maxHeight && p.height && p.height !== Infinity && p.height > maxHeight) continue;
-    select.append(el("option", { value: p.id, textContent: p.label }));
+    select.append(el("option", { value: p.id, textContent: presetLabel(p) }));
   }
   select.value = [...select.options].some((o) => o.value === current) ? current : "best";
 }
@@ -54,10 +46,10 @@ async function checkHost() {
   try {
     const res = await host("ping");
     if (!res.ytdlp) {
-      show($("hostError"), "yt-dlp не установлен.\nУстановите: sudo pacman -S yt-dlp deno");
+      show($("hostError"), t("errNoYtdlp"));
       return false;
     }
-    $("hostStatus").textContent = "yt-dlp " + res.ytdlp + (res.ffmpeg ? "" : " · нет ffmpeg!");
+    $("hostStatus").textContent = "yt-dlp " + res.ytdlp + (res.ffmpeg ? "" : " · " + t("noFfmpeg"));
     $("outdir").placeholder = res.outdir;
     return true;
   } catch (e) {
@@ -76,7 +68,7 @@ async function loadInfo() {
     fillPresets();
     return;
   }
-  $("infoState").textContent = "Получаю информацию о видео…";
+  $("infoState").textContent = t("loadingInfo");
   try {
     const info = await host("info", { url, cookies: $("cookies").checked });
     if (seq !== infoSeq) return;
@@ -96,11 +88,11 @@ async function loadInfo() {
     fillPresets(info.heights[0]);
   } catch (e) {
     if (seq !== infoSeq) return;
-    $("infoState").replaceChildren("Не удалось распознать: " + e.message);
+    $("infoState").replaceChildren(t("infoFailed", e.message));
     if (needsLogin(e.message) && !$("cookies").checked) {
       $("infoState").append(el("br"), el("button", {
         className: "small",
-        textContent: "Повторить со входом из Firefox",
+        textContent: t("retryWithLogin"),
         onclick: () => { $("cookies").checked = true; $("cookies").onchange(); loadInfo(); },
       }));
     }
@@ -115,7 +107,7 @@ function needsLogin(message) {
 async function download() {
   show($("dlError"));
   const url = $("url").value.trim();
-  if (!isHttpUrl(url)) return show($("dlError"), "Нужна ссылка http(s)://");
+  if (!isHttpUrl(url)) return show($("dlError"), t("err_bad_url"));
   $("download").disabled = true;
   try {
     await host("download", {
@@ -137,27 +129,27 @@ async function download() {
 function jobItem(job) {
   const active = job.status === "queued" || job.status === "running";
   const pct = job.status === "done" ? 100 : job.percent || 0;
-  const details = [STATUS_TEXT[job.status] || job.status];
+  const details = [t("status_" + job.status)];
   if (job.status === "running") {
-    if (job.stage === "postprocess") details.push("обработка (" + (job.postprocessor || "ffmpeg") + ")");
+    if (job.stage === "postprocess") details.push(t("postprocessing", job.postprocessor || "ffmpeg"));
     else {
       if (job.percent != null) details.push(job.percent.toFixed(1) + "%");
       if (job.total) details.push(fmtBytes(job.total));
-      if (job.speed) details.push(fmtBytes(job.speed) + "/с");
-      if (job.eta) details.push("осталось " + fmtTime(job.eta));
+      if (job.speed) details.push(t("speed", fmtBytes(job.speed)));
+      if (job.eta) details.push(t("eta", fmtTime(job.eta)));
     }
   }
 
   const actions = el("span", { className: "actions" });
   const button = (text, title, fn) =>
     el("button", { className: "small", textContent: text, title, onclick: () => fn().catch((e) => alertJob(e)) });
-  if (active) actions.append(button("✕", "Отменить", () => host("cancel", { id: job.id }).then(refreshJobs)));
+  if (active) actions.append(button("✕", t("cancel"), () => host("cancel", { id: job.id }).then(refreshJobs)));
   if (job.status === "done") {
-    actions.append(button("▶", "Открыть файл", () => host("open", { id: job.id, what: "file" })));
-    actions.append(button("📂", "Открыть папку", () => host("open", { id: job.id, what: "dir" })));
+    actions.append(button("▶", t("openFile"), () => host("open", { id: job.id, what: "file" })));
+    actions.append(button("📂", t("openFolder"), () => host("open", { id: job.id, what: "dir" })));
   }
   if (job.status === "error" && !job.cookies && needsLogin(job.error || "")) {
-    actions.append(button("↻ со входом", "Повторить, используя вход из Firefox (куки)", () =>
+    actions.append(button(t("retryShort"), t("retryTitle"), () =>
       host("download", { ...pick(job, "url", "preset", "playlist", "outdir", "title"), cookies: true })
         .then(refreshJobs)));
   }
@@ -166,7 +158,7 @@ function jobItem(job) {
     el("div", { className: "name", textContent: job.title || job.url, title: job.url }),
     active || job.status === "done" ? el("div", { className: "bar" }, el("div", { style: `width:${pct}%` })) : null,
     el("div", { className: "line" }, el("span", { textContent: details.join(" · ") }), actions),
-    job.error ? el("div", { className: "err", textContent: job.error }) : null,
+    job.error ? el("div", { className: "err", textContent: errorText(job.errorCode, job.error) }) : null,
   );
 }
 
@@ -189,6 +181,7 @@ async function refreshJobs() {
 }
 
 async function init() {
+  localizePage();
   settings = await getSettings();
   fillPresets();
   $("cookies").checked = settings.cookies;

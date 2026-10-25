@@ -24,7 +24,7 @@ runs [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 - **Toolbar popup:** picks up the current tab's URL and shows the title, thumbnail and
   available quality. Choose anything from 360p to 4K, or audio only (mp3/m4a). It
   shows progress and speed, and lets you cancel, open the file or open the folder.
-- **Context menu:** right-click a link, video or page → *Скачать видео (ffvd)*.
+- **Context menu:** right-click a link, video or page → *Download video (ffvd)*.
   On X, right-click the post's timestamp, which links to the post.
 - **Playlists:** download a whole playlist into its own folder.
 - **Use Firefox login (cookies):** passes `--cookies-from-browser firefox` to yt-dlp.
@@ -32,8 +32,7 @@ runs [yt-dlp](https://github.com/yt-dlp/yt-dlp).
   X, Instagram and Vimeo videos need a login. The cookies never leave your computer.
   When a login error appears, the popup offers a one-click retry.
 - Desktop notification when a download finishes.
-
-> The UI is currently in Russian. Translations are welcome.
+- UI in English and Russian, following your Firefox language.
 
 ## Installation (Linux)
 
@@ -84,7 +83,7 @@ change often, and yt-dlp keeps up.
 
 | What | Where |
 | --- | --- |
-| Download folder, default quality, cookies | Popup → *Настройки* (stored in the extension) |
+| Download folder, default quality, cookies | Popup → *Settings* (stored in the extension) |
 | Custom yt-dlp command | `FFVD_YTDLP` env var or `~/.config/ffvd/config.json`: `{"ytdlp": "/path/to/yt-dlp"}` |
 | Job state | `~/.local/state/ffvd/jobs/` |
 
@@ -102,10 +101,20 @@ Layout:
 
 ```
 extension/   WebExtension (Manifest V3): popup, context menu, background
+  _locales/  UI translations (en, ru)
 host/        native messaging helper + tests
 install.sh   registers the helper for Firefox
 sign.sh      signs the extension on AMO (unlisted)
 ```
+
+## Translations
+
+UI strings live in `extension/_locales/<lang>/messages.json`. To add a language, copy
+`en/messages.json` to a new folder named with the
+[locale code](https://developer.mozilla.org/docs/Mozilla/Add-ons/WebExtensions/Internationalization)
+(e.g. `de`), translate the `message` values and open a pull request. Keep `$1`
+placeholders as they are. Errors from the helper arrive as codes and are translated
+via the `err_<code>` keys.
 
 ## Uninstall
 

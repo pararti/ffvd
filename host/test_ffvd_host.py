@@ -130,8 +130,9 @@ class ValidationTest(HostTestCase):
     def test_rejects_relative_outdir_and_bad_job_id(self):
         [res] = self.call({"cmd": "download", "url": "https://x.com/a", "outdir": "rel/dir"})
         self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "bad_outdir")
         [res] = self.call({"cmd": "open", "id": "../../etc"})
-        self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "bad_job_id")
 
     def test_url_goes_after_double_dash(self):
         job = {"preset": "720", "outdir": "/o", "url": "https://a"}
@@ -154,6 +155,7 @@ class InfoTest(HostTestCase):
     def test_info_error_is_readable(self):
         [res] = self.call({"cmd": "info", "url": "https://example.com/fail"})
         self.assertFalse(res["ok"])
+        self.assertIsNone(res["code"])
         self.assertTrue(res["error"].startswith("[generic] Unsupported URL"))
 
 
@@ -197,6 +199,30 @@ class DownloadTest(HostTestCase):
                        "pid": 2 ** 22 + 1, "created": time.time()})
         [job] = self.call({"cmd": "jobs"})[0]["jobs"]
         self.assertEqual(job["status"], "error")
+        self.assertEqual(job["errorCode"], "interrupted")
+
+    def test_missing_ytdlp_reported_with_code(self):
+        os.environ["FFVD_YTDLP"] = ""
+        os.environ["PATH"] = "/nonexistent"
+        extra, host.EXTRA_PATH = host.EXTRA_PATH, []
+        try:
+            res = host.handle({"cmd": "info", "url": "https://example.com/v"})
+        finally:
+            host.EXTRA_PATH = extra
+        self.assertEqual(res["code"], "no_ytdlp")
+
+
+class NotifyTextTest(unittest.TestCase):
+    def test_follows_locale_with_english_fallback(self):
+        env = dict(os.environ)
+        try:
+            os.environ.pop("LC_ALL", None); os.environ.pop("LC_MESSAGES", None)
+            os.environ["LANG"] = "ru_RU.UTF-8"
+            self.assertEqual(host.text("done"), "Видео скачано")
+            os.environ["LANG"] = "de_DE.UTF-8"
+            self.assertEqual(host.text("done"), "Video downloaded")
+        finally:
+            os.environ.clear(); os.environ.update(env)
 
 
 class ParseTest(unittest.TestCase):

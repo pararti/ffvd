@@ -111,26 +111,30 @@ def default_outdir():
 # ---------------------------------------------------------------- validation
 
 class HostError(Exception):
-    pass
+    """An error the extension can translate: `code` maps to an err_<code> UI message."""
+
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
 
 
 def check_url(url):
     if not isinstance(url, str) or not re.match(r"^https?://\S+$", url, re.I):
-        raise HostError("Нужна ссылка http(s)://")
+        raise HostError("bad_url", "An http(s):// URL is required")
     return url
 
 
 def resolve_outdir(value):
     path = os.path.expanduser(value.strip()) if isinstance(value, str) and value.strip() else default_outdir()
     if not os.path.isabs(path):
-        raise HostError("Папка для загрузок должна быть абсолютным путём")
+        raise HostError("bad_outdir", "The download folder must be an absolute path")
     os.makedirs(path, exist_ok=True)
     return path
 
 
 def check_job_id(job_id):
     if not isinstance(job_id, str) or not re.fullmatch(r"[0-9a-f]{32}", job_id):
-        raise HostError("Неверный id задачи")
+        raise HostError("bad_job_id", "Invalid job id")
     return job_id
 
 
@@ -144,7 +148,7 @@ def common_args(cookies):
 def build_download_args(job):
     preset = job["preset"]
     if preset not in PRESETS:
-        raise HostError(f"Неизвестный пресет: {preset}")
+        raise HostError("unknown_preset", f"Unknown preset: {preset}")
     if job.get("playlist"):
         template = "%(playlist_title|playlist)s/%(playlist_index|0)03d - %(title).150B [%(id)s].%(ext)s"
         playlist = ["--yes-playlist"]
@@ -164,7 +168,7 @@ def build_download_args(job):
 def last_error(text):
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     errors = [l for l in lines if l.startswith("ERROR:")]
-    msg = (errors or lines or ["yt-dlp завершился с ошибкой"])[-1]
+    msg = (errors or lines or ["yt-dlp failed"])[-1]
     return msg[len("ERROR:"):].strip() if msg.startswith("ERROR:") else msg
 
 
@@ -214,7 +218,7 @@ def list_jobs():
         except (OSError, ValueError):
             continue
         if is_stale(job):
-            job.update(status="error", error="Загрузка прервана")
+            job.update(status="error", error="Download interrupted", errorCode="interrupted")
             save_job(job)
         jobs.append(job)
     jobs.sort(key=lambda j: j.get("created", 0), reverse=True)
@@ -249,6 +253,18 @@ def apply_line(job, line):
     return True
 
 
+# Desktop notifications come from the helper, so they follow the system locale.
+NOTIFY_TEXT = {
+    "en": {"done": "Video downloaded", "error": "Download failed"},
+    "ru": {"done": "Видео скачано", "error": "Ошибка загрузки"},
+}
+
+
+def text(key):
+    lang = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES") or os.environ.get("LANG") or "")[:2]
+    return NOTIFY_TEXT.get(lang, NOTIFY_TEXT["en"])[key]
+
+
 def notify(summary, body):
     if os.environ.get("FFVD_NO_NOTIFY"):
         return
@@ -269,11 +285,15 @@ def run_worker(job_id):
     cmd = ytdlp_cmd()
     try:
         if not cmd:
-            raise HostError("yt-dlp не найден")
+            raise HostError("no_ytdlp", "yt-dlp not found")
         argv = cmd + build_download_args(job) + ["--", job["url"]]
         proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1)
-    except (OSError, HostError) as e:
+    except HostError as e:
+        job.update(status="error", error=str(e), errorCode=e.code, finished=time.time())
+        save_job(job)
+        return 1
+    except OSError as e:
         job.update(status="error", error=str(e), finished=time.time())
         save_job(job)
         return 1
@@ -298,9 +318,9 @@ def run_worker(job_id):
 
     title = job.get("title") or job["url"]
     if job["status"] == "done":
-        notify("Видео скачано", title)
+        notify(text("done"), title)
     elif job["status"] == "error":
-        notify("Ошибка загрузки", f"{title}\n{job['error']}")
+        notify(text("error"), f"{title}\n{job['error']}")
     return 0
 
 
@@ -323,14 +343,14 @@ def cmd_info(msg):
     url = check_url(msg.get("url"))
     cmd = ytdlp_cmd()
     if not cmd:
-        raise HostError("yt-dlp не найден")
+        raise HostError("no_ytdlp", "yt-dlp not found")
     argv = cmd + common_args(msg.get("cookies")) + ["-J", "--flat-playlist", "--no-playlist", "--", url]
     try:
         res = subprocess.run(argv, capture_output=True, text=True, errors="replace", timeout=120)
     except subprocess.TimeoutExpired:
-        raise HostError("yt-dlp не ответил за 2 минуты")
+        raise HostError("info_timeout", "yt-dlp did not answer within 2 minutes")
     if res.returncode != 0:
-        raise HostError(last_error(res.stderr))
+        raise HostError(None, last_error(res.stderr))
     data = json.loads(res.stdout)
     heights = sorted({f["height"] for f in data.get("formats") or []
                       if f.get("height") and f.get("vcodec") != "none"}, reverse=True)
@@ -397,15 +417,15 @@ def cmd_clear(_msg):
 def cmd_open(msg):
     job = load_job(check_job_id(msg.get("id")))
     if not job:
-        raise HostError("Задача не найдена")
+        raise HostError("job_not_found", "Job not found")
     target = job.get("filepath") if msg.get("what") == "file" else None
     if not target:
         target = os.path.dirname(job["filepath"]) if job.get("filepath") else job["outdir"]
     if not os.path.exists(target):
-        raise HostError("Файл не найден")
+        raise HostError("file_not_found", "File not found")
     exe = which("xdg-open")
     if not exe:
-        raise HostError("xdg-open не найден")
+        raise HostError("no_xdg_open", "xdg-open not found")
     subprocess.Popen([exe, target], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL, start_new_session=True)
     return {}
@@ -418,10 +438,10 @@ COMMANDS = {"ping": cmd_ping, "info": cmd_info, "download": cmd_download, "jobs"
 def handle(msg):
     try:
         if not isinstance(msg, dict) or msg.get("cmd") not in COMMANDS:
-            raise HostError("Неизвестная команда")
+            raise HostError("unknown_command", "Unknown command")
         return {"ok": True, **COMMANDS[msg["cmd"]](msg)}
     except HostError as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": str(e), "code": e.code}
     except Exception as e:  # never leave the extension without an answer
         return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 

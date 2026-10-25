@@ -6,14 +6,14 @@ browser.runtime.onInstalled.addListener(() => {
   browser.contextMenus.removeAll();
   browser.contextMenus.create({
     id: "ffvd",
-    title: "Скачать видео (ffvd)",
+    title: t("menuDownload"),
     contexts: ["link", "video", "audio", "page"],
   });
   for (const id of MENU_PRESETS) {
     browser.contextMenus.create({
       id: "ffvd:" + id,
       parentId: "ffvd",
-      title: PRESETS.find((p) => p.id === id).label,
+      title: presetLabel(PRESETS.find((p) => p.id === id)),
       contexts: ["link", "video", "audio", "page"],
     });
   }
@@ -34,11 +34,11 @@ browser.contextMenus.onClicked.addListener(async (info) => {
   const url = targetUrl(info);
   const settings = await getSettings();
   try {
-    if (!isHttpUrl(url)) throw new Error("Здесь нет ссылки http(s)");
+    if (!isHttpUrl(url)) throw new Error(t("errNoLinkHere"));
     await host("download", { url, preset, cookies: settings.cookies, outdir: settings.outdir });
-    notify("Загрузка началась", url);
+    notify(t("downloadStarted"), url);
   } catch (e) {
-    notify("ffvd: ошибка", e.message);
+    notify(t("errorTitle"), e.message);
   }
 });
 
