@@ -1,0 +1,15 @@
+# build output (signed .xpi)
+dist/
+web-ext-artifacts/
+node_modules/
+
+# web-ext sign bookkeeping
+.amo-upload-uuid
+
+# python
+__pycache__/
+*.pyc
+
+# secrets — AMO keys belong in ~/.config/ffvd/amo.env, never here
+*.env
+.env*

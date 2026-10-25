@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon.svg" alt="" width="20" height="20">
+    <strong>ffvd</strong>
+    <span id="hostStatus" class="muted"></span>
+  </header>
+
+  <div id="hostError" class="alert" hidden></div>
+
+  <section>
+    <div class="row">
+      <input id="url" type="url" placeholder="Ссылка на видео" spellcheck="false">
+      <button id="refresh" title="Получить информацию о видео">↻</button>
+    </div>
+
+    <div id="info" class="info" hidden>
+      <img id="thumb" alt="">
+      <div>
+        <div id="title" class="title"></div>
+        <div id="meta" class="muted"></div>
+      </div>
+    </div>
+    <div id="infoState" class="muted small"></div>
+
+    <div class="row">
+      <select id="preset"></select>
+      <button id="download" class="primary">Скачать</button>
+    </div>
+    <label class="check" id="playlistRow" hidden>
+      <input id="playlist" type="checkbox"> Весь плейлист <span id="playlistCount" class="muted"></span>
+    </label>
+    <label class="check">
+      <input id="cookies" type="checkbox"> Использовать вход из Firefox (куки)
+    </label>
+    <div id="dlError" class="alert" hidden></div>
+  </section>
+
+  <section>
+    <div class="row between">
+      <strong>Загрузки</strong>
+      <button id="clear" class="link">Очистить завершённые</button>
+    </div>
+    <ul id="jobs"></ul>
+    <div id="noJobs" class="muted small">Пока ничего не скачано</div>
+  </section>
+
+  <details>
+    <summary>Настройки</summary>
+    <label class="field">Папка для загрузок
+      <input id="outdir" type="text" spellcheck="false">
+    </label>
+    <p class="muted small">Пусто — папка «Загрузки» по умолчанию. Качество и куки запоминаются.</p>
+  </details>
+
+  <script src="common.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

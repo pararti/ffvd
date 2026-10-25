@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "ffvd — Video Downloader",
+  "version": "1.0.0",
+  "description": "Скачивание видео, клипов, рилсов и шортсов с YouTube, X и 1800+ сайтов через локальный yt-dlp.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ffvd@apararti.local",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": { "required": ["none"] }
+    }
+  },
+  "permissions": ["nativeMessaging", "contextMenus", "storage", "notifications", "activeTab"],
+  "background": { "scripts": ["common.js", "background.js"] },
+  "action": {
+    "default_title": "Скачать видео",
+    "default_popup": "popup.html",
+    "default_icon": "icons/icon.svg"
+  },
+  "icons": { "48": "icons/icon.svg", "96": "icons/icon.svg" }
+}
